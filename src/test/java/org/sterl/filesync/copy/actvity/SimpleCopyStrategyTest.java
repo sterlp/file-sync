@@ -10,13 +10,13 @@ import org.junit.Test;
 import org.sterl.filesync.SimpleSyncMeta;
 import org.sterl.filesync.file.FileUtil;
 
-public class SimpleCopyBATest {
+public class SimpleCopyStrategyTest {
     SimpleSyncMeta simpleSync = new SimpleSyncMeta();
-    SimpleCopyBA simpleCopy;
+    SimpleCopyStrategy simpleCopy;
     @Before
     public void before() throws IOException {
         simpleSync.clean();
-        simpleCopy = new SimpleCopyBA(simpleSync.sourceDir, simpleSync.destinationDir);
+        simpleCopy = new SimpleCopyStrategy(simpleSync.sourceDir, simpleSync.destinationDir);
     }
     @Test
     public void testFileCopy() throws IOException {

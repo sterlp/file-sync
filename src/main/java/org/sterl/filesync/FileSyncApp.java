@@ -15,7 +15,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.sterl.filesync.config.FileSyncConfig;
 import org.sterl.filesync.copy.actvity.CopyStrategy;
-import org.sterl.filesync.copy.actvity.SimpleCopyBA;
+import org.sterl.filesync.copy.actvity.SimpleCopyStrategy;
 
 @SpringBootApplication(scanBasePackages = "org.sterl.filesync")
 @EnableScheduling
@@ -28,7 +28,7 @@ public class FileSyncApp {
 
     @Bean
     public CopyStrategy newCopyStrategy() throws IOException {
-        return new SimpleCopyBA(config.getSourceDir(), config.getDestinationDir());
+        return new SimpleCopyStrategy(config.getSourceDir(), config.getDestinationDir());
     }
     @Bean(destroyMethod = "close")
     public WatchService newWatchService() throws IOException {
@@ -43,7 +43,7 @@ public class FileSyncApp {
         return Executors.newScheduledThreadPool(10,
                 new BasicThreadFactory.Builder()
                     .daemon(true)
-                    .namingPattern("FileSync-Scheduler")
+                    .namingPattern("FileSync")
                     .build());
     }
 }

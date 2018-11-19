@@ -12,7 +12,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.sterl.filesync.SimpleSyncMeta;
 import org.sterl.filesync.config.FileSyncConfig;
-import org.sterl.filesync.copy.actvity.SimpleCopyBA;
+import org.sterl.filesync.copy.actvity.SimpleCopyStrategy;
 import org.sterl.filesync.file.FileUtil;
 
 /**
@@ -24,7 +24,7 @@ public class SimpleCopyBATest {
     final Path sourceDir = simpleSyncMeta.sourceDir;
     final Path destinationDir = simpleSyncMeta.destinationDir;
     
-    SimpleCopyBA copyStrategy;
+    SimpleCopyStrategy copyStrategy;
     
     final File testFile = new File(sourceDir.toString() + "/foo.txt");
     final File copiedTestFile = new File(destinationDir.toString() + "/foo.txt");
@@ -33,8 +33,7 @@ public class SimpleCopyBATest {
     @Before
     public void before() throws IOException {
         simpleSyncMeta.clean();
-        FileUtil.delete(destinationDir);
-        copyStrategy = new SimpleCopyBA(sourceDir, destinationDir);
+        copyStrategy = new SimpleCopyStrategy(sourceDir, destinationDir);
         config.ignore(".DS_Store");
     }
 

@@ -16,17 +16,17 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 @Service
-public class SourceChangeBF {
-    private static final Logger LOGGER = LoggerFactory.getLogger(SourceChangeBF.class);
+public class SourceChangeBM {
+    private static final Logger LOGGER = LoggerFactory.getLogger(SourceChangeBM.class);
 
     private final ExecutorService es;
     @Autowired
     private FileChangeWatcherBA changeWatcher;
     
-    public SourceChangeBF() {
+    public SourceChangeBM() {
         BasicThreadFactory build = new BasicThreadFactory.Builder()
             .daemon(true)
-            .namingPattern("FileSync-ChangeListener")
+            .namingPattern("ChangeListener")
             .priority(Thread.NORM_PRIORITY - 2)
             .uncaughtExceptionHandler(new UncaughtExceptionHandler() {
                 @Override

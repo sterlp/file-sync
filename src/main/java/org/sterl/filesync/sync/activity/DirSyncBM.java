@@ -16,16 +16,17 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.sterl.filesync.sync.model.CopyFileStatistics;
+import org.sterl.filesync.time.Gauge;
 
 @Service
-public class DirSyncBF {
-    private static final Logger LOGGER = LoggerFactory.getLogger(DirSyncBF.class);
+public class DirSyncBM {
+    private static final Logger LOGGER = LoggerFactory.getLogger(DirSyncBM.class);
 
     private ExecutorService es;
     @Autowired
     private CopyFileVisitorBA copyFileVisitorBA;
-    
     private final AtomicBoolean syncRunning = new AtomicBoolean(false);
+    private final Gauge gauge = new Gauge();
     
     @PostConstruct
     void start() {
@@ -54,13 +55,13 @@ public class DirSyncBF {
         try {
             syncRunning.set(true);
             LOGGER.info("Start full directory sync for {}.", copyFileVisitorBA.getSourceDir());
-            long time = System.currentTimeMillis();
+            gauge.stop();
             Files.walkFileTree(copyFileVisitorBA.getSourceDir(), copyFileVisitorBA);
             CopyFileStatistics stats = copyFileVisitorBA.resetStats();
-            time = System.currentTimeMillis() - time;
+            gauge.stop();
             LOGGER.info("Sync of {} finished in {}s details: {}", 
                     copyFileVisitorBA.getSourceDir(),
-                    (time / 1000), stats);
+                    gauge.get(), stats);
             return stats;
         } catch (IOException e) {
             throw new RuntimeException(e);
