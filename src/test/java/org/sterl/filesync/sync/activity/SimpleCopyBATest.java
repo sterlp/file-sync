@@ -1,6 +1,7 @@
 package org.sterl.filesync.sync.activity;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.*;
 
 import java.io.File;
 import java.io.IOException;
@@ -8,8 +9,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashSet;
 
-import org.junit.Before;
-import org.junit.Test;
 import org.sterl.filesync.SimpleSyncMeta;
 import org.sterl.filesync.config.FileSyncConfig;
 import org.sterl.filesync.copy.actvity.SimpleCopyStrategy;
@@ -30,7 +29,7 @@ public class SimpleCopyBATest {
     final File copiedTestFile = new File(destinationDir.toString() + "/foo.txt");
     final FileSyncConfig config = new FileSyncConfig(sourceDir, destinationDir, new HashSet<>(), 5, 100);
 
-    @Before
+    @BeforeEach
     public void before() throws IOException {
         simpleSyncMeta.clean();
         copyStrategy = new SimpleCopyStrategy(sourceDir, destinationDir);

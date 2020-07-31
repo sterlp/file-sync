@@ -1,8 +1,7 @@
 package org.sterl.filesync.sync.activity;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.*;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -11,15 +10,13 @@ import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collections;
 
-import org.junit.Before;
-import org.junit.Test;
 import org.sterl.filesync.SimpleSyncMeta;
 import org.sterl.filesync.file.FileUtil;
 
 public class RemoveOrphanBATest {
     private final SimpleSyncMeta simpleSync = new SimpleSyncMeta();
     
-    @Before
+    @BeforeEach
     public void before() throws IOException {
         simpleSync.clean();
         Files.copy(simpleSync.source_f1, simpleSync.destination_f1);

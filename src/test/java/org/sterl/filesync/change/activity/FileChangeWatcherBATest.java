@@ -1,7 +1,7 @@
 package org.sterl.filesync.change.activity;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.*;
 
 import java.io.File;
 import java.io.IOException;
@@ -17,8 +17,6 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.lang3.concurrent.BasicThreadFactory;
-import org.junit.Before;
-import org.junit.Test;
 import org.sterl.filesync.AsyncTestUtil;
 import org.sterl.filesync.SimpleSyncMeta;
 import org.sterl.filesync.config.FileSyncConfig;
@@ -43,41 +41,42 @@ public class FileChangeWatcherBATest {
     
     private final SimpleSyncMeta simpleSync = new SimpleSyncMeta();
     private final FileSyncConfig config = new FileSyncConfig(
-            simpleSync.sourceDir, simpleSync.sourceDir, new HashSet<>(), 5, 100);
+            this.simpleSync.sourceDir, this.simpleSync.sourceDir, new HashSet<>(), 5, 100);
     
-    final Path sourceDir = simpleSync.sourceDir;
-    final Path destinationDir = simpleSync.destinationDir;
+    final Path sourceDir = this.simpleSync.sourceDir;
+    final Path destinationDir = this.simpleSync.destinationDir;
     SimpleCopyStrategy copyStrategy;
     
-    final File testFile = new File(sourceDir.toString() + "/foo.txt");
-    final File copiedTestFile = new File(destinationDir.toString() + "/foo.txt");
+    final File testFile = new File(this.sourceDir.toString() + "/foo.txt");
+    final File copiedTestFile = new File(this.destinationDir.toString() + "/foo.txt");
 
     
-    @Before
+    @BeforeEach
     public void before() throws IOException {
-        simpleSync.clean();
-        config.ignore(".DS_Store");
-        copyStrategy = new SimpleCopyStrategy(sourceDir, destinationDir);
+        this.simpleSync.clean();
+        this.config.ignore(".DS_Store");
+        this.copyStrategy = new SimpleCopyStrategy(this.sourceDir, this.destinationDir);
     }
     
     @Test
     public void testChangeFileListener() throws Exception {
         WatchService watchService = FileSystems.getDefault().newWatchService();
         
-        final ExecutorService executorService = Executors.newFixedThreadPool(1, threadFactory);
-        assertFalse(copiedTestFile.exists());
-        try (FileChangeWatcherBA fileChangeWatcherBA = new FileChangeWatcherBA(watchService, copyStrategy, config)) {
+        final ExecutorService executorService = Executors.newFixedThreadPool(1, this.threadFactory);
+        assertFalse(this.copiedTestFile.exists());
+        try (FileChangeWatcherBA fileChangeWatcherBA = new FileChangeWatcherBA(watchService, this.copyStrategy, this.config)) {
             executorService.submit(fileChangeWatcherBA);
             AsyncTestUtil.waitForEquals(true, () -> fileChangeWatcherBA.isRunning());
 
-            FileUtil.writeToFile(testFile, "Some message");
+            FileUtil.writeToFile(this.testFile, "Some message");
 
             AsyncTestUtil.waitFor(() -> fileChangeWatcherBA.getChangeCount(), l -> l >= 1, 20, TimeUnit.SECONDS);
-            assertTrue(copiedTestFile.exists());
-            assertTrue(FileUtil.isSameFile(testFile, copiedTestFile));
+            assertTrue(this.copiedTestFile.exists());
+            assertTrue(FileUtil.isSameFile(this.testFile, this.copiedTestFile));
         } finally {
-            FileUtil.delete(testFile);
+            FileUtil.delete(this.testFile);
             executorService.shutdownNow();
+            watchService.close();
         }
     }
 
@@ -85,12 +84,12 @@ public class FileChangeWatcherBATest {
     public void testChangeFileListenerSubDir() throws Exception {
         WatchService watchService = FileSystems.getDefault().newWatchService();
         
-        final ExecutorService executorService = Executors.newFixedThreadPool(1, threadFactory);
-        final File newFile = sourceDir.resolve("a/b/foo.txt").toFile();
-        final File copiedNewFile = destinationDir.resolve("a/b/foo.txt").toFile();
-        final File f1 = sourceDir.resolve("a/f1.txt").toFile();
-        final File f2 = sourceDir.resolve("a/b/file.txt").toFile();
-        try (FileChangeWatcherBA fileChangeWatcherBA = new FileChangeWatcherBA(watchService, copyStrategy, config)) {
+        final ExecutorService executorService = Executors.newFixedThreadPool(1, this.threadFactory);
+        final File newFile = this.sourceDir.resolve("a/b/foo.txt").toFile();
+        final File copiedNewFile = this.destinationDir.resolve("a/b/foo.txt").toFile();
+        final File f1 = this.sourceDir.resolve("a/f1.txt").toFile();
+        final File f2 = this.sourceDir.resolve("a/b/file.txt").toFile();
+        try (FileChangeWatcherBA fileChangeWatcherBA = new FileChangeWatcherBA(watchService, this.copyStrategy, this.config)) {
             executorService.submit(fileChangeWatcherBA);
             AsyncTestUtil.waitForEquals(true, () -> fileChangeWatcherBA.isRunning());
             
@@ -105,6 +104,7 @@ public class FileChangeWatcherBATest {
         } finally {
             FileUtil.delete(newFile);
             executorService.shutdownNow();
+            watchService.close();
         }
     }
 }
