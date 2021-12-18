@@ -33,7 +33,7 @@ public class DirSyncBM {
         BasicThreadFactory build = new BasicThreadFactory.Builder()
                 .daemon(true)
                 .namingPattern("FileSync-DirSync")
-                .priority(Thread.MIN_PRIORITY)
+                .priority(Thread.MIN_PRIORITY + 1)
                 .build();
         es = Executors.newFixedThreadPool(1, build);
     }

@@ -68,6 +68,7 @@ public class CopyFileVisitorBA implements FileVisitor<Path> {
     public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
         visited.add(dir);
         final Path toVerify = strategy.getDestinationDir().resolve(strategy.getSourceDir().relativize(dir));
+        // TODO this belongs to the strategy ...
         long deletedAmount = new RemoveOrphanBA(toVerify, dir, visited).call().longValue();
         stats.addDeletedResources(deletedAmount);
         return FileVisitResult.CONTINUE;
