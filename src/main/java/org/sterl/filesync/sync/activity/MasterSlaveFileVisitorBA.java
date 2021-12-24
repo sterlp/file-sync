@@ -7,11 +7,9 @@ import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-import org.sterl.filesync.copy.actvity.CopyStrategy;
+import org.sterl.filesync.config.FileSyncConfig;
 import org.sterl.filesync.sync.model.CopyFileStatistics;
 
 import lombok.Getter;
@@ -20,34 +18,33 @@ import lombok.Getter;
  * Visitor which copies one "source" to a different "destination". Not thread save.
  */
 @Component
-public class CopyFileVisitorBA implements FileVisitor<Path> {
-    private final CopyStrategy strategy;
-    @Getter
-    private volatile CopyFileStatistics stats = new CopyFileStatistics();
-    private Set<String> ignoreList;
+public class MasterSlaveFileVisitorBA extends FileVisitorStrategy {
+    private final DirectoryAdapter strategy;
+    private final FileSyncConfig config;
     private final List<Path> visited = new ArrayList<>();
 
-    @Autowired
-    public CopyFileVisitorBA(CopyStrategy copyStrategy, Set<String> ignoreList) throws IOException {
+    public MasterSlaveFileVisitorBA(FileSyncConfig config) throws IOException {
         super();
-        this.strategy = copyStrategy;
-        this.ignoreList = ignoreList;
+        this.config = config;
+        this.strategy = new DirectoryAdapter(config.getSourceDir(), config.getDestinationDir());
     }
-
+    
     @Override
     public FileVisitResult preVisitDirectory(Path sourceDir, BasicFileAttributes attrs) throws IOException {
-        stats.addDirectoryFound();
-        if (strategy.created(sourceDir)) {
-            stats.addDirectoryCreated();
+        if (attrs.isDirectory()) {
+            stats.addDirectoryFound();
+            if (strategy.created(sourceDir)) {
+                stats.addDirectoryCreated();
+            }
         }
         return FileVisitResult.CONTINUE;
     }
 
     @Override
     public FileVisitResult visitFile(Path sourceFile, BasicFileAttributes attrs) throws IOException {
-        if (ignoreList.contains(sourceFile.getFileName().toString())) {
+        if (config.isIgnored(sourceFile)) {
             stats.addFileIgnored();
-        } else {
+        } else if (attrs.isRegularFile()) {
             stats.addFileFound();
             visited.add(sourceFile);
             if (strategy.changed(sourceFile)) {
@@ -68,22 +65,14 @@ public class CopyFileVisitorBA implements FileVisitor<Path> {
     public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
         visited.add(dir);
         final Path toVerify = strategy.getDestinationDir().resolve(strategy.getSourceDir().relativize(dir));
-        // TODO this belongs to the strategy ...
         long deletedAmount = new RemoveOrphanBA(toVerify, dir, visited).call().longValue();
         stats.addDeletedResources(deletedAmount);
+        visited.clear();
         return FileVisitResult.CONTINUE;
-    }
-    /**
-     * Resets the current stats and returns the old stats.
-     * @return the old statistics
-     */
-    public CopyFileStatistics resetStats() {
-        CopyFileStatistics old = this.stats;
-        this.stats = new CopyFileStatistics();
-        return old;
     }
 
     public Path getSourceDir() {
         return this.strategy.getSourceDir();
     }
+
 }

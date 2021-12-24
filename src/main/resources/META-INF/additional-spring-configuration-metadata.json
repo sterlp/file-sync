@@ -1,0 +1,5 @@
+{"properties": [{
+  "name": "sync",
+  "type": "org.sterl.filesync.config.FileSyncConfig",
+  "description": "File sync config"
+}]}

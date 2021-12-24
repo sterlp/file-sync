@@ -11,7 +11,7 @@ import lombok.Getter;
 
 public class DeleteFileVisitorBA extends SimpleFileVisitor<Path> {
     @Getter
-    private long deleteCount = 0;
+    private int deleteCount = 0;
     @Override
     public FileVisitResult preVisitDirectory(Path sourceDir, BasicFileAttributes attrs) throws IOException {
         return FileVisitResult.CONTINUE;

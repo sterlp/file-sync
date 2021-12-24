@@ -18,10 +18,10 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.lang3.concurrent.BasicThreadFactory;
 import org.sterl.filesync.AsyncTestUtil;
-import org.sterl.filesync.SimpleSyncMeta;
+import org.sterl.filesync.TestDataGenerator;
 import org.sterl.filesync.config.FileSyncConfig;
-import org.sterl.filesync.copy.actvity.SimpleCopyStrategy;
 import org.sterl.filesync.file.FileUtil;
+import org.sterl.filesync.sync.activity.DirectoryAdapter;
 
 /**
  * Testing here the simple unidirectional sync
@@ -39,13 +39,13 @@ public class FileChangeWatcherBATest {
         })
         .build();
     
-    private final SimpleSyncMeta simpleSync = new SimpleSyncMeta();
+    private final TestDataGenerator simpleSync = new TestDataGenerator();
     private final FileSyncConfig config = new FileSyncConfig(
             this.simpleSync.sourceDir, this.simpleSync.sourceDir, new HashSet<>(), 5, 100);
     
     final Path sourceDir = this.simpleSync.sourceDir;
     final Path destinationDir = this.simpleSync.destinationDir;
-    SimpleCopyStrategy copyStrategy;
+    DirectoryAdapter copyStrategy;
     
     final File testFile = new File(this.sourceDir.toString() + "/foo.txt");
     final File copiedTestFile = new File(this.destinationDir.toString() + "/foo.txt");
@@ -53,9 +53,9 @@ public class FileChangeWatcherBATest {
     
     @BeforeEach
     public void before() throws IOException {
-        this.simpleSync.clean();
+        this.simpleSync.reset();
         this.config.ignore(".DS_Store");
-        this.copyStrategy = new SimpleCopyStrategy(this.sourceDir, this.destinationDir);
+        this.copyStrategy = new DirectoryAdapter(this.sourceDir, this.destinationDir);
     }
     
     @Test
@@ -68,11 +68,11 @@ public class FileChangeWatcherBATest {
             executorService.submit(fileChangeWatcherBA);
             AsyncTestUtil.waitForEquals(true, () -> fileChangeWatcherBA.isRunning());
 
-            FileUtil.writeToFile(this.testFile, "Some message");
+            FileUtil.appendToFile(this.testFile, "Some message");
 
             AsyncTestUtil.waitFor(() -> fileChangeWatcherBA.getChangeCount(), l -> l >= 1, 20, TimeUnit.SECONDS);
             assertTrue(this.copiedTestFile.exists());
-            assertTrue(FileUtil.isSameFile(this.testFile, this.copiedTestFile));
+            assertTrue(FileUtil.hasFileChanged(this.testFile, this.copiedTestFile));
         } finally {
             FileUtil.delete(this.testFile);
             executorService.shutdownNow();
@@ -93,14 +93,14 @@ public class FileChangeWatcherBATest {
             executorService.submit(fileChangeWatcherBA);
             AsyncTestUtil.waitForEquals(true, () -> fileChangeWatcherBA.isRunning());
             
-            FileUtil.writeToFile(newFile, UUID.randomUUID().toString());
-            FileUtil.writeToFile(f1, UUID.randomUUID().toString());
-            FileUtil.writeToFile(f2, UUID.randomUUID().toString());
+            FileUtil.appendToFile(newFile, UUID.randomUUID().toString());
+            FileUtil.appendToFile(f1, UUID.randomUUID().toString());
+            FileUtil.appendToFile(f2, UUID.randomUUID().toString());
 
             AsyncTestUtil.waitFor(() -> fileChangeWatcherBA.getChangeCount(),
                     value -> value >= 3, 35, TimeUnit.SECONDS);
             assertTrue(copiedNewFile.exists());
-            FileUtil.isSameFile(newFile, copiedNewFile);
+            FileUtil.hasFileChanged(newFile, copiedNewFile);
         } finally {
             FileUtil.delete(newFile);
             executorService.shutdownNow();

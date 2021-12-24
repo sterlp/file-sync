@@ -14,10 +14,9 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.sterl.filesync.config.FileSyncConfig;
-import org.sterl.filesync.copy.actvity.CopyStrategy;
-import org.sterl.filesync.copy.actvity.SimpleCopyStrategy;
+import org.sterl.filesync.sync.activity.DirectoryAdapter;
 
-@SpringBootApplication(scanBasePackages = "org.sterl.filesync")
+@SpringBootApplication
 @EnableScheduling
 public class FileSyncApp {
     public static void main(String[] args) {
@@ -27,8 +26,8 @@ public class FileSyncApp {
     private FileSyncConfig config;
 
     @Bean
-    public CopyStrategy newCopyStrategy() throws IOException {
-        return new SimpleCopyStrategy(config.getSourceDir(), config.getDestinationDir());
+    public DirectoryAdapter newCopyStrategy() throws IOException {
+        return new DirectoryAdapter(config.getSourceDir(), config.getDestinationDir());
     }
     @Bean(destroyMethod = "close")
     public WatchService newWatchService() throws IOException {

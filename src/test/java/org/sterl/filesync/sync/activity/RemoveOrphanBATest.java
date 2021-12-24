@@ -10,22 +10,22 @@ import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collections;
 
-import org.sterl.filesync.SimpleSyncMeta;
+import org.sterl.filesync.TestDataGenerator;
 import org.sterl.filesync.file.FileUtil;
 
 public class RemoveOrphanBATest {
-    private final SimpleSyncMeta simpleSync = new SimpleSyncMeta();
+    private final TestDataGenerator simpleSync = new TestDataGenerator();
     
     @BeforeEach
     public void before() throws IOException {
-        simpleSync.clean();
+        simpleSync.reset();
         Files.copy(simpleSync.source_f1, simpleSync.destination_f1);
     }
     
     @Test
     public void testRemoveOrphanFile() throws FileNotFoundException, IOException {
-        FileUtil.writeToFile(simpleSync.destinationDir.resolve("ffffo.txt"), "bar");
-        FileUtil.writeToFile(simpleSync.destinationDir.resolve("ffffo2.txt"), "bar2");
+        FileUtil.appendToFile(simpleSync.destinationDir.resolve("ffffo.txt"), "bar");
+        FileUtil.appendToFile(simpleSync.destinationDir.resolve("ffffo2.txt"), "bar2");
         
         RemoveOrphanBA removeOrphan = new RemoveOrphanBA(simpleSync.destinationDir, simpleSync.sourceDir, Collections.emptyList());
         assertEquals(Long.valueOf(2), removeOrphan.call());
@@ -36,7 +36,7 @@ public class RemoveOrphanBATest {
     public void testRemoveOrphanDirs() throws FileNotFoundException, IOException {
         Files.createDirectories(simpleSync.destinationDir.resolve("xx/zz"));
         Files.createDirectories(simpleSync.destinationDir.resolve("yy"));
-        FileUtil.writeToFile(simpleSync.destinationDir.resolve("yy/ffffo2.txt"), "bar2");
+        FileUtil.appendToFile(simpleSync.destinationDir.resolve("yy/ffffo2.txt"), "bar2");
         
         RemoveOrphanBA removeOrphan = new RemoveOrphanBA(simpleSync.destinationDir, simpleSync.sourceDir, Collections.emptyList());
         assertEquals(Long.valueOf(4), removeOrphan.call());
@@ -46,8 +46,8 @@ public class RemoveOrphanBATest {
     @Test
     public void testIgnoreList() throws FileNotFoundException, IOException {
         Path fileToIgnore = simpleSync.destinationDir.resolve("fu.txt");
-        FileUtil.writeToFile(fileToIgnore, "bar2");
-        FileUtil.writeToFile(simpleSync.destinationDir.resolve("fu2.txt"), "bar2");
+        FileUtil.appendToFile(fileToIgnore, "bar2");
+        FileUtil.appendToFile(simpleSync.destinationDir.resolve("fu2.txt"), "bar2");
         RemoveOrphanBA removeOrphan = new RemoveOrphanBA(
                 simpleSync.destinationDir, simpleSync.sourceDir, 
                 Arrays.asList(fileToIgnore));

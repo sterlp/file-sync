@@ -1,42 +1,43 @@
-package org.sterl.filesync.sync.activity;
+package org.sterl.filesync.sync.manager;
 
 import java.io.IOException;
+import java.nio.file.FileVisitor;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 
 import org.apache.commons.lang3.concurrent.BasicThreadFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.sterl.filesync.sync.activity.FileVisitorStrategy;
+import org.sterl.filesync.sync.activity.MasterSlaveFileVisitorBA;
 import org.sterl.filesync.sync.model.CopyFileStatistics;
 import org.sterl.filesync.time.Gauge;
 
-@Service
+import lombok.RequiredArgsConstructor;
+
+@Service @RequiredArgsConstructor
 public class DirSyncBM {
     private static final Logger LOGGER = LoggerFactory.getLogger(DirSyncBM.class);
 
-    private ExecutorService es;
-    @Autowired
-    private CopyFileVisitorBA copyFileVisitorBA;
+    final BasicThreadFactory build = new BasicThreadFactory.Builder()
+            .daemon(true)
+            .namingPattern("FileSync-DirSync")
+            .priority(Thread.MIN_PRIORITY)
+            .build();
+
+    private final ExecutorService es = Executors.newFixedThreadPool(1, build);
     private final AtomicBoolean syncRunning = new AtomicBoolean(false);
     private final Gauge gauge = new Gauge();
+
+    private final FileVisitorStrategy visitorStratregy;
     
-    @PostConstruct
-    void start() {
-        BasicThreadFactory build = new BasicThreadFactory.Builder()
-                .daemon(true)
-                .namingPattern("FileSync-DirSync")
-                .priority(Thread.MIN_PRIORITY + 1)
-                .build();
-        es = Executors.newFixedThreadPool(1, build);
-    }
     @PreDestroy
     void stop() {
         es.shutdownNow();
@@ -54,13 +55,13 @@ public class DirSyncBM {
     CopyFileStatistics syncDir() {
         try {
             syncRunning.set(true);
-            LOGGER.info("Start full directory sync for {}.", copyFileVisitorBA.getSourceDir());
-            gauge.stop();
-            Files.walkFileTree(copyFileVisitorBA.getSourceDir(), copyFileVisitorBA);
-            CopyFileStatistics stats = copyFileVisitorBA.resetStats();
+            LOGGER.info("Start full directory sync for {}.", visitorStratregy.getSourceDir());
+            gauge.start();
+            Files.walkFileTree(visitorStratregy.getSourceDir(), visitorStratregy);
+            CopyFileStatistics stats = visitorStratregy.resetStats();
             gauge.stop();
             LOGGER.info("Sync of {} finished in {}s details: {}", 
-                    copyFileVisitorBA.getSourceDir(),
+                    visitorStratregy.getSourceDir(),
                     gauge.get(), stats);
             return stats;
         } catch (IOException e) {
@@ -68,5 +69,9 @@ public class DirSyncBM {
         } finally {
             syncRunning.set(false);
         }
+    }
+
+    public boolean stopped() {
+        return !syncRunning.get();
     }
 }

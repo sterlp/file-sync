@@ -25,7 +25,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.sterl.filesync.config.FileSyncConfig;
-import org.sterl.filesync.copy.actvity.CopyStrategy;
+import org.sterl.filesync.sync.activity.DirectoryAdapter;
 
 @Component
 public class FileChangeWatcherBA implements Closeable, Callable<Long> {
@@ -37,7 +37,7 @@ public class FileChangeWatcherBA implements Closeable, Callable<Long> {
         StandardWatchEventKinds.ENTRY_MODIFY};
 
     private final WatchService service;
-    private final CopyStrategy strategy;
+    private final DirectoryAdapter strategy;
     private final FileSyncConfig config;
     
     private final Map<WatchKey, Path> watchers = new HashMap<>();
@@ -46,7 +46,7 @@ public class FileChangeWatcherBA implements Closeable, Callable<Long> {
     
     @Autowired
     public FileChangeWatcherBA(WatchService service, 
-            CopyStrategy copyStrategy, FileSyncConfig config) throws IOException {
+            DirectoryAdapter copyStrategy, FileSyncConfig config) throws IOException {
         super();
         this.service = service;
         this.strategy = copyStrategy;

@@ -39,4 +39,7 @@ public class CopyFileStatistics {
         deletedResourcesCount += amount;
         return deletedResourcesCount;
     }
+    public void addFilesCopied(int filesCopied) {
+        this.copiedFilesCount += filesCopied;
+    }
 }
