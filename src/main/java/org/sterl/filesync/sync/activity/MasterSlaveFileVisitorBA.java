@@ -2,7 +2,6 @@ package org.sterl.filesync.sync.activity;
 
 import java.io.IOException;
 import java.nio.file.FileVisitResult;
-import java.nio.file.FileVisitor;
 import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
@@ -10,9 +9,6 @@ import java.util.List;
 
 import org.springframework.stereotype.Component;
 import org.sterl.filesync.config.FileSyncConfig;
-import org.sterl.filesync.sync.model.CopyFileStatistics;
-
-import lombok.Getter;
 
 /**
  * Visitor which copies one "source" to a different "destination". Not thread save.
@@ -21,7 +17,7 @@ import lombok.Getter;
 public class MasterSlaveFileVisitorBA extends FileVisitorStrategy {
     private final DirectoryAdapter strategy;
     private final FileSyncConfig config;
-    private final List<Path> visited = new ArrayList<>();
+    private final List<String> visited = new ArrayList<>();
 
     public MasterSlaveFileVisitorBA(FileSyncConfig config) throws IOException {
         super();
@@ -46,7 +42,7 @@ public class MasterSlaveFileVisitorBA extends FileVisitorStrategy {
             stats.addFileIgnored();
         } else if (attrs.isRegularFile()) {
             stats.addFileFound();
-            visited.add(sourceFile);
+            visited.add(sourceFile.getFileName().toString());
             if (strategy.changed(sourceFile)) {
                 stats.addFileCopied();
             } else {
@@ -63,7 +59,6 @@ public class MasterSlaveFileVisitorBA extends FileVisitorStrategy {
 
     @Override
     public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
-        visited.add(dir);
         final Path toVerify = strategy.getDestinationDir().resolve(strategy.getSourceDir().relativize(dir));
         long deletedAmount = new RemoveOrphanBA(toVerify, dir, visited).call().longValue();
         stats.addDeletedResources(deletedAmount);

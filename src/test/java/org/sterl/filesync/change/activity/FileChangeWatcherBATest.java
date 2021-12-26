@@ -1,5 +1,6 @@
 package org.sterl.filesync.change.activity;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 import org.junit.jupiter.api.*;
 
@@ -17,6 +18,7 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.lang3.concurrent.BasicThreadFactory;
+import org.awaitility.Awaitility;
 import org.sterl.filesync.AsyncTestUtil;
 import org.sterl.filesync.TestDataGenerator;
 import org.sterl.filesync.config.FileSyncConfig;
@@ -89,18 +91,23 @@ public class FileChangeWatcherBATest {
         final File copiedNewFile = this.destinationDir.resolve("a/b/foo.txt").toFile();
         final File f1 = this.sourceDir.resolve("a/f1.txt").toFile();
         final File f2 = this.sourceDir.resolve("a/b/file.txt").toFile();
+
         try (FileChangeWatcherBA fileChangeWatcherBA = new FileChangeWatcherBA(watchService, this.copyStrategy, this.config)) {
             executorService.submit(fileChangeWatcherBA);
-            AsyncTestUtil.waitForEquals(true, () -> fileChangeWatcherBA.isRunning());
+            Awaitility.await().until(() -> fileChangeWatcherBA.isRunning());
             
-            FileUtil.appendToFile(newFile, UUID.randomUUID().toString());
-            FileUtil.appendToFile(f1, UUID.randomUUID().toString());
-            FileUtil.appendToFile(f2, UUID.randomUUID().toString());
+            Thread.sleep(2);
+            FileUtil.appendToFile(newFile, "new file");
+            FileUtil.appendToFile(f1, "f1");
+            FileUtil.appendToFile(f2, "f2");
+            
+            assertThat(FileUtil.compareModifiedTime(newFile, copiedNewFile)).isGreaterThan(1);
 
-            AsyncTestUtil.waitFor(() -> fileChangeWatcherBA.getChangeCount(),
-                    value -> value >= 3, 35, TimeUnit.SECONDS);
+            Awaitility.await().until(() -> fileChangeWatcherBA.getChangeCount() >= 3);
+
             assertTrue(copiedNewFile.exists());
-            FileUtil.hasFileChanged(newFile, copiedNewFile);
+            assertThat(FileUtil.compareModifiedTime(newFile, copiedNewFile)).isZero();
+            assertThat(fileChangeWatcherBA.getChangeCount()).isEqualTo(3);
         } finally {
             FileUtil.delete(newFile);
             executorService.shutdownNow();

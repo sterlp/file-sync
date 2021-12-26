@@ -1,5 +1,6 @@
 package org.sterl.filesync.sync.activity;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 import org.junit.jupiter.api.*;
 
@@ -28,7 +29,7 @@ public class RemoveOrphanBATest {
         FileUtil.appendToFile(simpleSync.destinationDir.resolve("ffffo2.txt"), "bar2");
         
         RemoveOrphanBA removeOrphan = new RemoveOrphanBA(simpleSync.destinationDir, simpleSync.sourceDir, Collections.emptyList());
-        assertEquals(Long.valueOf(2), removeOrphan.call());
+        assertThat(removeOrphan.call()).isEqualTo(2);
         assertFalse(Files.exists(simpleSync.destinationDir.resolve("ffffo.txt")));
     }
     
@@ -39,7 +40,7 @@ public class RemoveOrphanBATest {
         FileUtil.appendToFile(simpleSync.destinationDir.resolve("yy/ffffo2.txt"), "bar2");
         
         RemoveOrphanBA removeOrphan = new RemoveOrphanBA(simpleSync.destinationDir, simpleSync.sourceDir, Collections.emptyList());
-        assertEquals(Long.valueOf(4), removeOrphan.call());
+        assertThat(removeOrphan.call()).isEqualTo(4);
         assertFalse(Files.exists(simpleSync.destinationDir.resolve("xx/zz")));
     }
     
@@ -50,8 +51,8 @@ public class RemoveOrphanBATest {
         FileUtil.appendToFile(simpleSync.destinationDir.resolve("fu2.txt"), "bar2");
         RemoveOrphanBA removeOrphan = new RemoveOrphanBA(
                 simpleSync.destinationDir, simpleSync.sourceDir, 
-                Arrays.asList(fileToIgnore));
-        assertEquals(Long.valueOf(1), removeOrphan.call());
+                Arrays.asList("fu.txt"));
+        assertThat(removeOrphan.call()).isOne();
         assertTrue(Files.exists(fileToIgnore));
     }
 }

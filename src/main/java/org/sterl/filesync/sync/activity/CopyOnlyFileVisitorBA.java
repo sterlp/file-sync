@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.springframework.stereotype.Component;
+import org.sterl.filesync.compare.FileComperator;
 import org.sterl.filesync.config.FileSyncConfig;
 
 /**
@@ -18,8 +19,9 @@ public class CopyOnlyFileVisitorBA extends FileVisitorStrategy {
     private final DirectoryAdapter strategy;
     private final FileSyncConfig config;
     private final List<String> visited = new ArrayList<>();
+    private final FileComperator comperator = new FileComperator();
 
-    public CopyOnlyFileVisitorBA(FileSyncConfig config) {
+    public CopyOnlyFileVisitorBA(FileSyncConfig config) throws IOException {
         super();
         this.config = config;
         this.strategy = new DirectoryAdapter(config.getSourceDir(), config.getDestinationDir());
@@ -41,13 +43,14 @@ public class CopyOnlyFileVisitorBA extends FileVisitorStrategy {
         if (config.isIgnored(sourceFile)) {
             stats.addFileIgnored();
         } else if (attrs.isRegularFile()) {
-            
-            // TODO check if destination is newer than source!
-            
             stats.addFileFound();
-            visited.add(sourceFile.getFileName().toString());
-            if (strategy.changed(sourceFile)) {
+
+            final Path destinationFile = strategy.resolveDestination(sourceFile);
+            if (comperator.isNewer(attrs, destinationFile)) {
+                strategy.changed(sourceFile);
                 stats.addFileCopied();
+                visited.add(sourceFile.getFileName().toString());
+                comperator.adjust(sourceFile, destinationFile);
             } else {
                 stats.addNotChangedFile();
             }
@@ -64,7 +67,7 @@ public class CopyOnlyFileVisitorBA extends FileVisitorStrategy {
     public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
         final Path toVerify = strategy.getDestinationDir().resolve(strategy.getSourceDir().relativize(dir));
         visited.addAll(config.getIgnoreList());
-        int syncedBack = new CopyAllFilesFromToBA(toVerify, dir, visited).call();
+        int syncedBack = new CopyAllFilesFromToBA(toVerify, dir, comperator, visited).call();
         visited.clear();
         stats.addFilesCopied(syncedBack);
         return FileVisitResult.CONTINUE;

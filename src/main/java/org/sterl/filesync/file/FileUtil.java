@@ -10,6 +10,7 @@ import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributeView;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.util.function.IntPredicate;
 
 import org.sterl.filesync.sync.activity.DeleteFileVisitorBA;
 
@@ -29,24 +30,34 @@ public class FileUtil {
             throw new IllegalArgumentException("Cannot write to: " + directory);
         }
     }
-
+    /**
+     * @deprecated wrong
+     */
+    @Deprecated
     public static boolean hasFileChanged(File source, File destination, int maxTimeDiff) throws IOException {
         if (source == null || destination == null) return false;
         return hasFileChanged(source.toPath(), destination.toPath(), maxTimeDiff);
     }
-
+    /**
+     * @deprecated wrong
+     */
+    @Deprecated
     public static boolean hasFileChanged(File source, File destination) throws IOException {
         if (source == null || destination == null) return false;
         return hasFileChanged(source.toPath(), destination.toPath());
     }
-    
+    /**
+     * @deprecated wrong
+     */
+    @Deprecated
     public static boolean hasFileChanged(Path source, Path destination) throws IOException {
         return hasFileChanged(source, destination, 0);
     }
 
     /**
-     * Checks the size and the last modification time.
+     * @deprecated wrong
      */
+    @Deprecated
     public static boolean hasFileChanged(Path source, Path destination, long maxTimeDiff) throws IOException {
         if (source == null || destination == null) return false;
         if (Files.exists(source) && Files.exists(destination)) {
@@ -66,6 +77,50 @@ public class FileUtil {
         return sourceAttributes.size() == destinationAttributes.size()
                 && Math.abs(sourceAttributes.lastModifiedTime().toMillis()
                         - destinationAttributes.lastModifiedTime().toMillis()) <= maxTimeDiff;
+    }
+    
+    /**
+     * @return 0 same, > 0 source newer, otherwise destination newer
+     */
+    public static long compareModifiedTime(BasicFileAttributes sourceAttributes, 
+            BasicFileAttributes destinationAttributes) {
+        return sourceAttributes.lastModifiedTime().toMillis()
+                - destinationAttributes.lastModifiedTime().toMillis();
+    }
+
+    /**
+     * @return 0 same, > 0 source newer, otherwise destination newer
+     */
+    public static long compareModifiedTime(BasicFileAttributes sourceAttributes, Path destinationFile) throws IOException {
+        if (Files.exists(destinationFile)) {
+            BasicFileAttributes destinationAttributes = Files
+                    .getFileAttributeView(destinationFile, BasicFileAttributeView.class)
+                    .readAttributes();
+            return compareModifiedTime(sourceAttributes, destinationAttributes);
+        }
+        return sourceAttributes.lastModifiedTime().toMillis();
+    }
+    /**
+     * @return 0 same, > 0 source newer, otherwise destination newer
+     */
+    public static long compareModifiedTime(Path source, Path destination) throws IOException {
+        if (Files.exists(source)) {
+            BasicFileAttributes sa = Files
+                    .getFileAttributeView(source, BasicFileAttributeView.class)
+                    .readAttributes();
+
+            return compareModifiedTime(sa, destination);
+        } else if (Files.exists(destination)) {
+            return -1;
+        } else {
+            return 0; // neither exists
+        }
+    }
+    /**
+     * @return 0 same, > 0 source newer, otherwise destination newer
+     */
+    public static long compareModifiedTime(File source, File destination) throws IOException {
+        return compareModifiedTime(source.toPath(), destination.toPath());
     }
 
     /**
@@ -135,6 +190,8 @@ public class FileUtil {
                     }
                 });
             }
+        } else {
+            createDirectoryIfNeeded(path);
         }
     }
 

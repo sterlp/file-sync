@@ -19,18 +19,18 @@ public class DirectoryAdapter {
     @Getter
     private final Path destinationDir;
 
-    private final FileComperator comperator = new FileComperator();
+    private final FileComperator comperator;
 
-    public DirectoryAdapter(Path sourceDir, Path destinationDir) {
+    public DirectoryAdapter(Path sourceDir, Path destinationDir, FileComperator comperator) throws IOException {
         super();
         FileUtil.assertWriteableDirectory(sourceDir);
-        try {
-            FileUtil.createDirectoryIfNeeded(destinationDir);
-        } catch (IOException e) {
-            throw new IllegalArgumentException("Destination dir: " + destinationDir, e);
-        }
+        FileUtil.createDirectoryIfNeeded(destinationDir);
         this.sourceDir = sourceDir;
         this.destinationDir = destinationDir;
+        this.comperator = comperator;
+    }
+    public DirectoryAdapter(Path sourceDir, Path destinationDir) throws IOException {
+        this(sourceDir, destinationDir, new FileComperator());
     }
 
     public boolean created(Path source) throws IOException {
@@ -46,34 +46,30 @@ public class DirectoryAdapter {
     }
 
     private boolean copy(Path source) throws IOException {
-        if (Files.isDirectory(source)) {
-            return handleDir(source);
-        } else {
+        if (!Files.isDirectory(source)) {
             return handleFile(source);
         }
+        return false;
     }
 
     private boolean handleFile(Path sourceFile) throws IOException {
-        final Path relativeSourceFile = sourceDir.relativize(sourceFile);
-        final Path destinationFile = destinationDir.resolve(relativeSourceFile);
-        boolean result;
-        if (comperator.isSameFile(sourceFile, destinationFile)) {
-            result = false;
-        } else {
+        final Path destinationFile = resolveDestination(sourceFile);
+        if (comperator.isNewer(sourceFile, destinationFile)) {
             FileUtil.createDirectoryIfNeeded(destinationFile.getParent());
             Files.copy(sourceFile, destinationFile, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.COPY_ATTRIBUTES);
             LOGGER.debug("File copied to {}", destinationFile);
             if (comperator.adjust(sourceFile, destinationFile)) {
                 LOGGER.info("Time diff adjusted to {}ms directories have a time skew.", comperator.getTimeDiff());
             }
-            result = true;
+            return true;
+        } else {
+            return false;
         }
-        return result;
     }
 
+    /*
     private boolean handleDir(Path source) throws IOException {
-        final Path relativeSourceDir = this.sourceDir.relativize(source);
-        final Path newDir = this.destinationDir.resolve(relativeSourceDir);
+        final Path newDir = resolveDestination(source);
         boolean result;
         if (!Files.exists(newDir)) {
             Files.createDirectories(newDir);
@@ -83,5 +79,13 @@ public class DirectoryAdapter {
             result = false;
         }
         return result;
+    }*/
+
+    /**
+     * Resolve the destination {@link Path} using the given source {@link Path}.
+     */
+    public Path resolveDestination(Path source) {
+        final Path relativeSource = this.sourceDir.relativize(source);
+        return this.destinationDir.resolve(relativeSource);
     }
 }

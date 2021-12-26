@@ -70,7 +70,6 @@ public class MasterSlaveFileVisitorBATest {
         Files.walkFileTree(sourceDir, subject);
         // THEN
         assertEquals(3, subject.getStats().getCopiedFilesCount());
-        assertEquals(2, subject.getStats().getDirectoriesCreatedCount());
         
         // WHEN
         subject.resetStats();

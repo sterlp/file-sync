@@ -26,6 +26,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.sterl.filesync.config.FileSyncConfig;
 import org.sterl.filesync.sync.activity.DirectoryAdapter;
+import com.sun.nio.file.*;
 
 @Component
 public class FileChangeWatcherBA implements Closeable, Callable<Long> {
@@ -34,10 +35,11 @@ public class FileChangeWatcherBA implements Closeable, Callable<Long> {
     private static final WatchEvent.Kind<?>[] WATCH_KEYS = {
         StandardWatchEventKinds.ENTRY_CREATE,
         StandardWatchEventKinds.ENTRY_DELETE,
-        StandardWatchEventKinds.ENTRY_MODIFY};
+        StandardWatchEventKinds.ENTRY_MODIFY
+    };
 
     private final WatchService service;
-    private final DirectoryAdapter strategy;
+    private final DirectoryAdapter directories;
     private final FileSyncConfig config;
     
     private final Map<WatchKey, Path> watchers = new HashMap<>();
@@ -46,10 +48,10 @@ public class FileChangeWatcherBA implements Closeable, Callable<Long> {
     
     @Autowired
     public FileChangeWatcherBA(WatchService service, 
-            DirectoryAdapter copyStrategy, FileSyncConfig config) throws IOException {
+            DirectoryAdapter directories, FileSyncConfig config) throws IOException {
         super();
         this.service = service;
-        this.strategy = copyStrategy;
+        this.directories = directories;
         this.config = config;
     }
     
@@ -84,8 +86,7 @@ public class FileChangeWatcherBA implements Closeable, Callable<Long> {
             }
         }
 
-        shouldRun.set(false);
-        LOG.info("Stopped watching.");
+        close();
         return changeCount.get();
     }
     
@@ -109,6 +110,7 @@ public class FileChangeWatcherBA implements Closeable, Callable<Long> {
     private boolean regiserDir(Path dir) throws IOException {
         if (watchers.size() < config.getMaxChangeListenDirectories()) {
             final WatchKey key = dir.register(service, WATCH_KEYS);
+
             watchers.put(key, dir);
             LOG.debug("Watching {}", dir);
             return watchers.size() < config.getMaxChangeListenDirectories() ? true : false;
@@ -127,23 +129,24 @@ public class FileChangeWatcherBA implements Closeable, Callable<Long> {
     private void handleChanges(Path changedPath, List<WatchEvent<?>> changes) throws IOException {
         if (changes != null && !changes.isEmpty()) {
             for (WatchEvent<?> e : changes) {
-                if (config.isNotIgnored((Path)e.context())) {
-                    final Path eventPath = changedPath.resolve((Path)e.context());
+                final Path eventPath = changedPath.resolve((Path)e.context());
+
+                if (Files.isRegularFile(eventPath) && config.isNotIgnored(eventPath)) {
                     LOG.debug("{} change detected in {}", e.kind(), eventPath);
                     try {
-                        if (e.kind() == StandardWatchEventKinds.ENTRY_DELETE) {
-                            strategy.deleted(eventPath);
-                        } else if (e.kind() == StandardWatchEventKinds.ENTRY_MODIFY) {
-                            strategy.changed(eventPath);
-                        } else {
-                            strategy.created(eventPath);
-                        }
                         changeCount.incrementAndGet();
+                        if (e.kind() == StandardWatchEventKinds.ENTRY_DELETE) {
+                            directories.deleted(eventPath);
+                        } else if (e.kind() == StandardWatchEventKinds.ENTRY_MODIFY) {
+                            directories.changed(eventPath);
+                        } else {
+                            directories.created(eventPath);
+                        }
                     } catch (Exception ex) {
                         LOG.error("Failed to handle file {}", eventPath, ex);
                     }
                 } else {
-                    LOG.debug("File {} is in ignore list.", e.context());
+                    LOG.debug("File {} is in ignore list or not a file.", e.context());
                 }
 
             }; 
@@ -153,12 +156,12 @@ public class FileChangeWatcherBA implements Closeable, Callable<Long> {
     @Override
     public void close() throws IOException {
         shouldRun.set(false);
+        LOG.info("Stopped watching.");
         synchronized(shouldRun) {
             this.watchers.keySet().forEach(w -> {
                 w.cancel();
             });
             this.watchers.clear();
-            service.close();
         }
     }
 }
