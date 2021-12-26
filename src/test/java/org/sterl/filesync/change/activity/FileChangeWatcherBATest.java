@@ -107,7 +107,7 @@ public class FileChangeWatcherBATest {
 
             assertTrue(copiedNewFile.exists());
             assertThat(FileUtil.compareModifiedTime(newFile, copiedNewFile)).isZero();
-            assertThat(fileChangeWatcherBA.getChangeCount()).isEqualTo(3);
+            assertThat(fileChangeWatcherBA.getChangeCount()).isGreaterThanOrEqualTo(3L);
         } finally {
             FileUtil.delete(newFile);
             executorService.shutdownNow();
